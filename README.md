@@ -12,7 +12,8 @@
 |---|---|---|
 | `01-hardening-guide-human.md` | Пошаговая инструкция с пояснениями | Для человека — читать и выполнять вручную |
 | `02-hardening-prompt-claude-code.md` | Промпт-задание для Claude Code | Для Claude Code — скормить как задачу |
-| `03-install-claude-and-harden.sh` | Скрипт: установка Claude Code + хардинг | Для нового сервера, где нет Claude Code |
+| `03-install-claude-and-harden.sh` | Скрипт: установка Claude Code (API-ключ) + хардинг | Для нового сервера, есть API-ключ Anthropic |
+| `03a-install-claude-subscription-and-harden.sh` | Скрипт: установка Claude Code (подписка) + хардинг | Для нового сервера, есть подписка Max/Pro |
 | `04-harden-standalone.sh` | Автономный скрипт хардинга | Для нового сервера, без Claude Code |
 
 ---
@@ -41,7 +42,7 @@ cat 01-hardening-guide-human.md
 claude "$(cat 02-hardening-prompt-claude-code.md)"
 ```
 
-### Сценарий 3: «Новый сервер, хочу поставить Claude Code и захардить через него»
+### Сценарий 3a: «Новый сервер + Claude Code через API-ключ»
 
 Используй **`03-install-claude-and-harden.sh`**.
 
@@ -60,6 +61,28 @@ chmod +x 03-install-claude-and-harden.sh
 ```
 
 **Требования:** Ubuntu 22.04/24.04, root, SSH-ключ в `authorized_keys`, Anthropic API ключ.
+
+### Сценарий 3b: «Новый сервер + Claude Code через подписку Max/Pro»
+
+Используй **`03a-install-claude-subscription-and-harden.sh`**.
+
+То же самое, но вместо API-ключа — авторизация через подписку Claude Max или Pro. Скрипт покажет ссылку, которую нужно открыть в браузере и войти в аккаунт.
+
+Скрипт автоматически:
+1. Проверит наличие SSH-ключа (без него не продолжит)
+2. Установит Node.js 20
+3. Установит Claude Code CLI
+4. Запустит `claude login` (авторизация через браузер)
+5. Запустит Claude Code с промптом из `02-hardening-prompt-claude-code.md`
+
+```bash
+# Предварительно: добавь SSH-ключ на сервер
+# Затем:
+chmod +x 03a-install-claude-subscription-and-harden.sh
+./03a-install-claude-subscription-and-harden.sh
+```
+
+**Требования:** Ubuntu 22.04/24.04, root, SSH-ключ в `authorized_keys`, подписка Claude Max/Pro, доступ к браузеру.
 
 ### Сценарий 4: «Просто захардить, без Claude Code, в одну команду»
 
