@@ -16,7 +16,8 @@ sed -i 's/^PermitRootLogin yes/PermitRootLogin prohibit-password/' /etc/ssh/sshd
 sed -i 's/^#PasswordAuthentication yes/PasswordAuthentication no/' /etc/ssh/sshd_config
 
 # Проверить конфиг и перезапустить SSH
-sshd -t && systemctl restart sshd
+# (на некоторых Ubuntu сервис называется ssh, на других — sshd)
+sshd -t && systemctl restart ssh 2>/dev/null || systemctl restart sshd
 ```
 
 ---

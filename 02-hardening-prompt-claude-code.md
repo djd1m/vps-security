@@ -37,7 +37,7 @@
 ### 1.6 Подозрительные сервисы
 - Проверь наличие: nezha, xray, argo, tunnel.service, майнеров
 - `systemctl list-unit-files --state=enabled --type=service` — покажи нестандартные
-- `crontab -l` — проверь на подозрительные записи
+- `crontab -l` — проверь на подозрительные записи (учти: если crontab пуст, команда вернёт ошибку — это нормально)
 - Проверь группу sudo: `grep '^sudo:' /etc/group`
 
 ### 1.7 Выведи сводную таблицу
@@ -53,7 +53,8 @@
 ```bash
 sed -i 's/^PermitRootLogin yes/PermitRootLogin prohibit-password/' /etc/ssh/sshd_config
 sed -i 's/^#PasswordAuthentication yes/PasswordAuthentication no/' /etc/ssh/sshd_config
-sshd -t && systemctl restart sshd
+# Определи имя сервиса: ssh или sshd (зависит от версии Ubuntu)
+sshd -t && systemctl restart ssh 2>/dev/null || systemctl restart sshd
 ```
 
 ### 2.2 fail2ban (если не установлен)
