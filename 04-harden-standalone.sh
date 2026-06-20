@@ -19,7 +19,7 @@
 #   - SSH-ключ уже должен быть в /root/.ssh/authorized_keys
 # =============================================================================
 
-set -euo pipefail
+set -uo pipefail
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -65,8 +65,10 @@ header "ФАЗА 1: АУДИТ ТЕКУЩЕГО СОСТОЯНИЯ"
 # --- 1.1 SSH ---
 header "1.1 SSH-конфигурация"
 
-PERMIT_ROOT=$(grep -E '^PermitRootLogin' /etc/ssh/sshd_config 2>/dev/null | awk '{print $2}' || echo "не задан")
-PASS_AUTH=$(grep -E '^PasswordAuthentication' /etc/ssh/sshd_config 2>/dev/null | awk '{print $2}' || echo "не задан (по умолчанию yes)")
+PERMIT_ROOT=$(grep -E '^PermitRootLogin' /etc/ssh/sshd_config 2>/dev/null | awk '{print $2}')
+[[ -z "$PERMIT_ROOT" ]] && PERMIT_ROOT="не задан"
+PASS_AUTH=$(grep -E '^PasswordAuthentication' /etc/ssh/sshd_config 2>/dev/null | awk '{print $2}')
+[[ -z "$PASS_AUTH" ]] && PASS_AUTH="не задан (по умолчанию yes)"
 
 if [[ "$PERMIT_ROOT" == "yes" ]] || [[ "$PERMIT_ROOT" == "не задан" ]]; then
   fail "PermitRootLogin = $PERMIT_ROOT (root по паролю разрешён)"
@@ -82,7 +84,7 @@ fi
 
 HAS_KEY=false
 if [[ -f /root/.ssh/authorized_keys ]] && [[ -s /root/.ssh/authorized_keys ]]; then
-  KEY_COUNT=$(wc -l < /root/.ssh/authorized_keys)
+  KEY_COUNT=$(grep -c '' /root/.ssh/authorized_keys 2>/dev/null || echo 0)
   ok "authorized_keys: $KEY_COUNT ключ(ей)"
   HAS_KEY=true
 else
@@ -131,7 +133,7 @@ else
   warn "UFW: $UFW_STATUS"
 fi
 
-INPUT_POLICY=$(iptables -L INPUT -n 2>/dev/null | head -1 | grep -oP '\(policy \K[A-Z]+')
+INPUT_POLICY=$(iptables -L INPUT -n 2>/dev/null | head -1 | grep -oP '\(policy \K[A-Z]+' || echo "UNKNOWN")
 INPUT_RULES=$(iptables -L INPUT -n 2>/dev/null | tail -n +3 | wc -l)
 if [[ "$INPUT_POLICY" == "ACCEPT" ]] && [[ $INPUT_RULES -eq 0 ]]; then
   fail "iptables INPUT: policy ACCEPT, правил нет — всё пропускает"
@@ -148,7 +150,7 @@ fi
 # --- 1.5 Открытые порты ---
 header "1.5 Порты, открытые в интернет"
 
-OPEN_PORTS=$(ss -tlnp 2>/dev/null | grep -E '0\.0\.0\.0|:::|\*:' | awk '{print $4}' | sed 's/.*://' | sort -un)
+OPEN_PORTS=$(ss -tlnp 2>/dev/null | grep -E '0\.0\.0\.0|:::|\*:' | awk '{print $4}' | sed 's/.*://' | sort -un || true)
 for port in $OPEN_PORTS; do
   PROC=$(ss -tlnp 2>/dev/null | grep ":${port} " | head -1 | grep -oP 'users:\(\("\K[^"]+' || echo "?")
   warn "Порт $port открыт ($PROC)"
@@ -165,15 +167,15 @@ for svc in nezha xray tunnel argo; do
   fi
 done
 
-CRON_LINES=$(crontab -l 2>/dev/null | grep -v '^#' | grep -v '^$' | wc -l)
-CRON_SUSPECT=$(crontab -l 2>/dev/null | grep -iE '(miner|watchdog|nezha|rpow|\.sh)' | wc -l)
+CRON_LINES=$(crontab -l 2>/dev/null | grep -cv '^#\|^$' || echo 0)
+CRON_SUSPECT=$(crontab -l 2>/dev/null | grep -icE '(miner|watchdog|nezha|rpow|\.sh)' || echo 0)
 if [[ $CRON_SUSPECT -gt 0 ]]; then
   fail "Подозрительные cron-записи: $CRON_SUSPECT"
 else
   ok "Cron: $CRON_LINES записей, подозрительных нет"
 fi
 
-SUDO_MEMBERS=$(grep '^sudo:' /etc/group | cut -d: -f4)
+SUDO_MEMBERS=$(grep '^sudo:' /etc/group 2>/dev/null | cut -d: -f4 || echo "")
 if [[ -z "$SUDO_MEMBERS" ]]; then
   ok "Группа sudo пуста (только root)"
 else
@@ -226,7 +228,7 @@ if [[ "$HAS_KEY" == true ]]; then
     CHANGED=true
   fi
 
-  CURRENT_PASS_AUTH=$(grep -E '^#?PasswordAuthentication' /etc/ssh/sshd_config | head -1)
+  CURRENT_PASS_AUTH=$(grep -E '^#?PasswordAuthentication' /etc/ssh/sshd_config 2>/dev/null | head -1 || echo "")
   if echo "$CURRENT_PASS_AUTH" | grep -q '^#'; then
     sed -i 's/^#PasswordAuthentication yes/PasswordAuthentication no/' /etc/ssh/sshd_config
     ok "PasswordAuthentication → no"
@@ -271,8 +273,10 @@ header "ФАЗА 3: ИТОГОВЫЙ ОТЧЁТ"
 
 echo "" | tee -a "$LOGFILE"
 
-FINAL_PERMIT=$(grep -E '^PermitRootLogin' /etc/ssh/sshd_config 2>/dev/null | awk '{print $2}' || echo "?")
-FINAL_PASS=$(grep -E '^PasswordAuthentication' /etc/ssh/sshd_config 2>/dev/null | awk '{print $2}' || echo "?")
+FINAL_PERMIT=$(grep -E '^PermitRootLogin' /etc/ssh/sshd_config 2>/dev/null | awk '{print $2}')
+[[ -z "$FINAL_PERMIT" ]] && FINAL_PERMIT="?"
+FINAL_PASS=$(grep -E '^PasswordAuthentication' /etc/ssh/sshd_config 2>/dev/null | awk '{print $2}')
+[[ -z "$FINAL_PASS" ]] && FINAL_PASS="?"
 FINAL_F2B=$(systemctl is-active fail2ban 2>/dev/null || echo "inactive")
 FINAL_IPTABLES=$(iptables -L INPUT -n 2>/dev/null | tail -n +3 | wc -l)
 
