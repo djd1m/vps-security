@@ -15,6 +15,8 @@
 | `03-install-claude-and-harden.sh` | Скрипт: установка Claude Code (API-ключ) + хардинг | Для нового сервера, есть API-ключ Anthropic |
 | `03a-install-claude-subscription-and-harden.sh` | Скрипт: установка Claude Code (подписка) + хардинг | Для нового сервера, есть подписка Max/Pro |
 | `04-harden-standalone.sh` | Автономный скрипт хардинга | Для нового сервера, без Claude Code |
+| `install-chromium-devtools.sh` | Установка Chromium + chrome-devtools-mcp (standalone) | Headless-браузер для любого MCP-клиента |
+| `install-chromium-devtools-claude.sh` | Установка Chromium + регистрация MCP в Claude Code | Headless-браузер интегрированный в Claude Code |
 
 ---
 
@@ -158,3 +160,29 @@ chmod +x 04-harden-standalone.sh
 - [ ] Настроить мониторинг: новые systemd-сервисы, изменения authorized_keys, новые sudo-пользователи
 - [ ] Настроить централизованный сбор логов (rsyslog remote или journald persistent)
 - [ ] Контроль исходящих соединений (egress filtering)
+
+---
+
+## Chromium + chrome-devtools-mcp
+
+Отдельные скрипты для установки headless-браузера и MCP-инструмента управления им.
+
+### Без Claude Code
+
+```bash
+chmod +x install-chromium-devtools.sh
+./install-chromium-devtools.sh
+```
+
+Устанавливает Chromium (Chrome for Testing) и chrome-devtools-mcp глобально. Результат можно использовать с любым MCP-клиентом или вручную.
+
+### С Claude Code
+
+```bash
+chmod +x install-chromium-devtools-claude.sh
+./install-chromium-devtools-claude.sh
+```
+
+То же + регистрирует `chrome-devtools` как MCP-сервер в Claude Code (`claude mcp add`). После перезапуска сессии Claude Code получает инструменты: навигация, клики, ввод в формы, скриншоты, выполнение JS, чтение консоли и сети.
+
+**Требования:** Node.js >= 18, npm, npx. Claude Code — только для второго варианта.
