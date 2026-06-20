@@ -167,8 +167,14 @@ for svc in nezha xray tunnel argo; do
   fi
 done
 
-CRON_LINES=$(crontab -l 2>/dev/null | grep -cv '^#\|^$' || echo 0)
-CRON_SUSPECT=$(crontab -l 2>/dev/null | grep -icE '(miner|watchdog|nezha|rpow|\.sh)' || echo 0)
+CRON_CONTENT=$(crontab -l 2>/dev/null || true)
+if [[ -n "$CRON_CONTENT" ]]; then
+  CRON_LINES=$(echo "$CRON_CONTENT" | grep -cv '^#\|^$' || true)
+  CRON_SUSPECT=$(echo "$CRON_CONTENT" | grep -icE '(miner|watchdog|nezha|rpow|\.sh)' || true)
+else
+  CRON_LINES=0
+  CRON_SUSPECT=0
+fi
 if [[ $CRON_SUSPECT -gt 0 ]]; then
   fail "Подозрительные cron-записи: $CRON_SUSPECT"
 else
@@ -240,9 +246,11 @@ if [[ "$HAS_KEY" == true ]]; then
   fi
 
   if [[ "$CHANGED" == true ]]; then
+    SSH_SVC="sshd"
+    systemctl list-unit-files ssh.service &>/dev/null && SSH_SVC="ssh"
     if sshd -t 2>>"$LOGFILE"; then
-      systemctl restart sshd
-      ok "SSH перезапущен с новыми настройками"
+      systemctl restart "$SSH_SVC"
+      ok "SSH перезапущен с новыми настройками ($SSH_SVC.service)"
     else
       fail "Ошибка в конфиге sshd! Откатываю..."
       cp /etc/ssh/sshd_config.bak /etc/ssh/sshd_config 2>/dev/null || true
