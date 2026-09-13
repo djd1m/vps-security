@@ -18,6 +18,7 @@
 | `install-chromium-devtools.sh` | Установка Chromium + chrome-devtools-mcp (standalone) | Headless-браузер для любого MCP-клиента |
 | `install-chromium-devtools-claude.sh` | Установка Chromium + регистрация MCP в Claude Code | Headless-браузер интегрированный в Claude Code |
 | `install-tmux.sh` | Установка и настройка tmux | Терминальный мультиплексор для VPS |
+| `tmux-persistent-sessions.md` | tmux: сессия, которая возвращается после перезагрузки | Дополнение к `install-tmux.sh`: linger + systemd-юнит, проверка ребутом |
 
 ---
 
@@ -223,3 +224,12 @@ chmod +x install-tmux.sh
 | `Alt+стрелки` | Переключение между панелями |
 | `Ctrl+A r` | Перечитать конфиг |
 | `tmux ls` | Список сессий |
+
+### Сессии после перезагрузки
+
+Сессия tmux **не переживает перезагрузку сервера** — сервер `tmux` умирает вместе
+с системой, и никакой настройкой это не лечится. `install-tmux.sh` защищает только
+от обрыва SSH. Чтобы после загрузки сессия `main` снова существовала и `tmux attach -t main`
+сразу работал, нужны `loginctl enable-linger` и пользовательский systemd-юнит —
+пошагово, с проверкой настоящим ребутом и откатом:
+[`tmux-persistent-sessions.md`](tmux-persistent-sessions.md).
